@@ -11,7 +11,8 @@
 //  /__faults                      fault injection control (FIXTURE_FAULTS=1, same-origin only)
 //  /__requests                    recent request log (for retry/backoff assertions)
 //  /__sign?path=&ttl=             issue a signed URL for a fixture path (dev only)
-//  /lab/, /sdk/, /e2e/            built Player Lab, SDK bundle and e2e test pages
+//  /__analytics                   test ingest: POST batches (dedup by eventId), GET, DELETE
+//  /lab/, /embed/, /sdk/, /e2e/   built Player Lab, iframe player, SDK bundle, e2e test pages
 //
 // Zero dependencies: runs with plain `node` (>= 18).
 import http from 'node:http';
@@ -24,13 +25,18 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const MEDIA = path.join(ROOT, 'infrastructure/fixtures/media');
 const HOST = process.env.FIXTURE_HOST ?? '127.0.0.1';
 const PORT = Number(process.env.FIXTURE_PORT ?? 8080);
-const ALT_PORT = process.env.FIXTURE_ALT_PORT ? Number(process.env.FIXTURE_ALT_PORT) : null;
+// Extra ports serve the same content as additional origins (cross-origin iframe tests).
+const ALT_PORTS = (process.env.FIXTURE_ALT_PORTS ?? process.env.FIXTURE_ALT_PORT ?? '')
+  .split(',')
+  .map((p) => Number(p.trim()))
+  .filter((p) => p > 0);
 const FAULTS_ENABLED = (process.env.FIXTURE_FAULTS ?? '1') === '1';
 const SIGN_SECRET = process.env.FIXTURE_SIGN_SECRET ?? crypto.randomBytes(16).toString('hex');
 const QUIET = process.env.FIXTURE_QUIET === '1';
 
 const STATIC_MOUNTS = {
   '/lab/': path.join(ROOT, 'apps/player-lab/dist'),
+  '/embed/': path.join(ROOT, 'apps/embed-player/dist'),
   '/sdk/': path.join(ROOT, 'packages/player-sdk/dist'),
   '/e2e/': path.join(ROOT, 'tests/e2e/pages'),
 };
@@ -123,6 +129,8 @@ function liveMaster(kind) {
 // ---------------------------------------------------------------------------------------
 /** @type {{id:string,match:string,status?:number,delayMs?:number,abort?:boolean,remaining:number,hits:number}[]} */
 let faults = [];
+/** Test analytics ingest: events by eventId (duplicates counted, not stored twice). */
+const analytics = { events: new Map(), batches: 0, duplicates: 0, rejected: 0 };
 const requestLog = [];
 let requestSeq = 0;
 
@@ -240,6 +248,42 @@ async function handle(req, res) {
     entry.status = res.statusCode;
     if (!QUIET && !p.startsWith('/__')) console.log(`${res.statusCode} ${req.method} ${p}`);
   });
+
+  if (p === '/__analytics') {
+    const cors = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'content-type', 'Access-Control-Allow-Methods': 'POST, GET, DELETE, OPTIONS' };
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, cors);
+      return res.end();
+    }
+    if (req.method === 'GET') {
+      return send(res, 200, JSON.stringify({ batches: analytics.batches, duplicates: analytics.duplicates, rejected: analytics.rejected, events: [...analytics.events.values()] }), { ...cors, 'Content-Type': 'application/json' });
+    }
+    if (req.method === 'DELETE') {
+      analytics.events.clear();
+      analytics.batches = analytics.duplicates = analytics.rejected = 0;
+      return send(res, 204, '', cors);
+    }
+    if (req.method === 'POST') {
+      let body;
+      try {
+        body = await readJson(req, 64 * 1024);
+      } catch (e) {
+        analytics.rejected++;
+        return send(res, 413, String(e.message), cors);
+      }
+      if (body?.schema !== 1 || !Array.isArray(body.events) || body.events.length > 500) {
+        analytics.rejected++;
+        return send(res, 400, 'invalid batch', cors);
+      }
+      analytics.batches++;
+      for (const ev of body.events) {
+        if (typeof ev?.eventId !== 'string' || typeof ev?.type !== 'string') continue;
+        if (analytics.events.has(ev.eventId)) analytics.duplicates++;
+        else analytics.events.set(ev.eventId, ev);
+      }
+      return send(res, 202, '', cors);
+    }
+  }
 
   const isMediaRoute = /^\/(media|live|signed|errors)\//.test(p);
   if (req.method === 'OPTIONS' && isMediaRoute) {
@@ -362,6 +406,9 @@ async function handle(req, res) {
     if (p.startsWith(prefix)) {
       const file = safeJoin(dir, p.slice(prefix.length) || 'index.html');
       if (!file) return send(res, 400, 'bad path');
+      // The Lab must not be framed by other sites; the embed page is meant to be framed
+      // (production: frame-ancestors from the player's allowed embed domains — Phase 6).
+      if (prefix === '/lab/') res.setHeader('Content-Security-Policy', "frame-ancestors 'self'");
       return serveFile(req, res, file, { cors: false, cache: 'no-cache' });
     }
   }
@@ -384,9 +431,9 @@ const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPat
 if (isMain) {
   if (!manifest) console.warn('[fixtures] media/manifest.json missing — run `npm run fixtures` first.');
   const servers = [await startServer()];
-  if (ALT_PORT) servers.push(await startServer({ port: ALT_PORT }));
+  for (const port of ALT_PORTS) servers.push(await startServer({ port }));
   console.log(`[fixtures] http://${HOST}:${PORT}  (Player Lab: http://${HOST}:${PORT}/lab/)`);
-  if (ALT_PORT) console.log(`[fixtures] alt origin http://${HOST}:${ALT_PORT}`);
+  for (const port of ALT_PORTS) console.log(`[fixtures] extra origin http://${HOST}:${port}`);
   console.log(`[fixtures] fault injection ${FAULTS_ENABLED ? 'ENABLED' : 'disabled'}`);
   const shutdown = () => {
     for (const s of servers) s.close();

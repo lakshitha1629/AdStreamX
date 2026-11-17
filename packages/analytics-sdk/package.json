@@ -1,0 +1,11 @@
+{
+  "name": "@adstreamx/analytics-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "First-party analytics collector: consent, sampling, batching, dedup, retry, beacon on page hide.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@adstreamx/shared-types": "workspace:*"
+  }
+}

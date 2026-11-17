@@ -16,6 +16,9 @@ export const ERROR_MESSAGES: Record<PlayerErrorCode, string> = {
   STALLED: 'Playback stalled while loading more video.',
   PLAY_BLOCKED: 'Press play to start the video.',
   DESTROYED: 'The player has been closed.',
+  FEATURE_UNAVAILABLE: 'This feature is not available in this player.',
+  PERMISSION_DENIED: 'This action is not allowed.',
+  INVALID_COMMAND: 'The request was not valid.',
   UNKNOWN: 'Something went wrong while playing this video.',
 };
 

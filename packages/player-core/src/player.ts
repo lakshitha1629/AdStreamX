@@ -1,5 +1,6 @@
 import type {
   Capabilities,
+  ExtensionEventName,
   MediaSourceConfig,
   PlayerConfig,
   PlayerConfigInput,
@@ -32,6 +33,14 @@ export interface PlayerCoreOptions {
   now?: () => number;
   baseUrl?: string;
 }
+
+const EXTENSION_EVENTS: ReadonlySet<string> = new Set<ExtensionEventName>([
+  'adbreakstart', 'adbreakend', 'adrequest', 'adloaded', 'adstarted', 'adquartile', 'adcompleted', 'adskipped', 'aderror',
+  'overlayshown', 'overlayclosed', 'overlayclicked',
+  'polldisplayed', 'voteaccepted', 'pollresultsupdated',
+  'commandreceived', 'commandapplied', 'commandrejected', 'announcement',
+  'analyticsflush', 'pluginregistered',
+]);
 
 const INITIAL_STATE: PlayerState = {
   status: 'idle',
@@ -158,6 +167,15 @@ export class PlayerCore {
   }
   listenerCount(): number {
     return this.emitter.listenerCount();
+  }
+
+  /**
+   * Emit an extension event (ads, overlays, polls, commands, analytics, plugins).
+   * Core playback events cannot be forged through this path.
+   */
+  emitExtension<K extends ExtensionEventName>(event: K, payload: PlayerEventMap[K]): void {
+    if (this.destroyed || !EXTENSION_EVENTS.has(event)) return;
+    this.emitter.emit(event, payload);
   }
 
   /** Resolves once the initial source has metadata (or immediately when there is no source). */

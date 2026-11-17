@@ -1,0 +1,11 @@
+{
+  "name": "@adstreamx/embed-player",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone iframe player page speaking the AdStreamX embed protocol v1.",
+  "dependencies": {
+    "@adstreamx/embed-protocol": "workspace:*",
+    "@adstreamx/player-sdk": "workspace:*"
+  }
+}

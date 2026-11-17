@@ -1,0 +1,15 @@
+{
+  "name": "@adstreamx/react-player",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "React component wrapper for the AdStreamX player.",
+  "exports": { ".": "./src/index.ts" },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "@adstreamx/player-sdk": "workspace:*",
+    "@adstreamx/shared-types": "workspace:*"
+  }
+}

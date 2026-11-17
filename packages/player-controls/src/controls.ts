@@ -102,8 +102,12 @@ export function createControls(root: HTMLElement, core: PlayerCore, initialConfi
   menu.setAttribute('role', 'menu');
   const sr = el('div', 'asx-sr');
   sr.setAttribute('aria-live', 'polite');
+  // Operator announcements: plain text only (textContent), never HTML.
+  const announceBox = el('div', 'asx-announce asx-hidden');
+  announceBox.setAttribute('role', 'status');
+  announceBox.setAttribute('aria-live', 'polite');
 
-  ui.append(gesture, top, center, flashL, flashR, controls, menu, sr);
+  ui.append(gesture, top, announceBox, center, flashL, flashR, controls, menu, sr);
   root.appendChild(ui);
   root.classList.add('asx-player');
   if (!root.hasAttribute('tabindex')) root.tabIndex = 0;
@@ -543,6 +547,17 @@ export function createControls(root: HTMLElement, core: PlayerCore, initialConfi
     }
   });
   disposers.push(offState);
+
+  let announceTimer: ReturnType<typeof setTimeout> | null = null;
+  disposers.push(
+    core.on('announcement', ({ text, level, durationMs }) => {
+      announceBox.textContent = text;
+      announceBox.classList.toggle('asx-warning', level === 'warning');
+      announceBox.classList.remove('asx-hidden');
+      if (announceTimer) clearTimeout(announceTimer);
+      announceTimer = later(() => announceBox.classList.add('asx-hidden'), durationMs);
+    }),
+  );
 
   applyConfig(config);
 

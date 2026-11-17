@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AdStreamX iframe host test page</title>
+  <link rel="icon" href="data:," />
+</head>
+<body style="background:#111;color:#ddd;font:14px system-ui">
+  <!--
+    Loaded from a DIFFERENT origin than the iframe (tests use the fixture server's alt port).
+    window.setup(embedUrl, playerOrigin, channel) creates the iframe and a protocol client.
+  -->
+  <div id="frames"></div>
+  <script src="/sdk/adstreamx.js"></script>
+  <script>
+    window.__evts = [];
+    window.setup = (embedUrl, playerOrigin, channel, id) => {
+      id = id || 'f1';
+      const f = document.createElement('iframe');
+      f.id = id;
+      f.src = embedUrl;
+      f.allow = 'autoplay; fullscreen; picture-in-picture';
+      f.style = 'width:640px;aspect-ratio:16/9;border:0';
+      document.getElementById('frames').appendChild(f);
+      const client = AdStreamX.connectIframe(f, { origin: playerOrigin, channel: channel || 'default', timeoutMs: 4000 });
+      window['client_' + id] = client;
+      return true;
+    };
+    window.cl = (id) => window['client_' + (id || 'f1')];
+  </script>
+</body>
+</html>

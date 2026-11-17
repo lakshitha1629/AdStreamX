@@ -1,6 +1,6 @@
 {
   "name": "@adstreamx/player-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -8,6 +8,9 @@
     "./dist/*": "./dist/*"
   },
   "dependencies": {
+    "@adstreamx/analytics-sdk": "workspace:*",
+    "@adstreamx/command-protocol": "workspace:*",
+    "@adstreamx/embed-protocol": "workspace:*",
     "@adstreamx/playback-adapters": "workspace:*",
     "@adstreamx/player-controls": "workspace:*",
     "@adstreamx/player-core": "workspace:*",

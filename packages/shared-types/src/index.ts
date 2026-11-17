@@ -101,7 +101,126 @@ export interface PlayerConfig {
   allowedSourceOrigins: string[];
   controls: ControlsConfig;
   branding: BrandingConfig;
+  analytics: AnalyticsConfig;
+  commands: CommandsConfig;
   debug: boolean;
+}
+
+// ---------------------------------------------------------------------------------------
+// Analytics (client collector — server ingest is Phase 8)
+// ---------------------------------------------------------------------------------------
+export interface AnalyticsConfig {
+  /** Off by default: nothing is collected unless the host enables it. */
+  enabled: boolean;
+  /** HTTPS (or same-origin) endpoint receiving POSTed batches. Without it events stay local. */
+  endpoint?: string;
+  /** When true, nothing is queued until setConsent(true) is called. */
+  requireConsent: boolean;
+  batchSize: number;
+  flushIntervalMs: number;
+  /** Oldest events are dropped beyond this (counted in getStats().dropped). */
+  maxQueue: number;
+  /** 0..1, decided once per playback session. */
+  sampleRate: number;
+  heartbeatIntervalMs: number;
+}
+
+// ---------------------------------------------------------------------------------------
+// Remote commands (live control room transport is Phase 7)
+// ---------------------------------------------------------------------------------------
+export interface CommandsConfig {
+  /** Accept commands at all (API, iframe host, operator channel). */
+  enabled: boolean;
+  /** Max tolerated clock skew for issuedAt/expiresAt checks. */
+  maxClockSkewMs: number;
+  /** Default lifetime when a command has no expiresAt. */
+  defaultTtlMs: number;
+}
+
+/**
+ * Who sent a command. Viewer = the person watching (local UI); host = the embedding
+ * application (trusted origin); operator = live administration, only with a verified signature.
+ */
+export type CommandRole = 'viewer' | 'host' | 'operator';
+
+export type CommandType =
+  | 'play'
+  | 'pause'
+  | 'seek'
+  | 'setVolume'
+  | 'setMuted'
+  | 'goLive'
+  | 'setQuality'
+  | 'setTextTrack'
+  | 'setSource'
+  | 'updateConfig'
+  | 'announce'
+  | 'showOverlay'
+  | 'hideOverlay'
+  | 'openPoll'
+  | 'closePoll'
+  | 'startAdBreak'
+  | 'cancelAdBreak';
+
+export interface PlayerCommand {
+  /** Command schema version. */
+  v: 1;
+  /** Stable id (idempotency key): 1–64 chars of [A-Za-z0-9_-]. */
+  id: string;
+  type: CommandType;
+  /** Epoch ms (UTC) when issued. */
+  issuedAt: number;
+  /** Epoch ms (UTC) after which the command must not be applied. */
+  expiresAt?: number;
+  payload?: Record<string, unknown>;
+  /** Detached signature (base64url Ed25519) — required for operator commands. */
+  sig?: string;
+  /** Key id for signature verification. */
+  kid?: string;
+}
+
+export type CommandAckStatus = 'applied' | 'duplicate' | 'rejected';
+export interface CommandAck {
+  id: string;
+  type: string;
+  status: CommandAckStatus;
+  /** Machine-readable reason when rejected. */
+  reason?: 'INVALID' | 'EXPIRED' | 'NOT_YET_VALID' | 'FORBIDDEN' | 'UNVERIFIED' | 'FEATURE_UNAVAILABLE' | 'DISABLED' | 'FAILED';
+  detail?: string;
+  at: number;
+}
+
+// ---------------------------------------------------------------------------------------
+// Contracts for later-phase engines (ads Phase 3, overlays Phase 4, polls Phase 5).
+// Events are typed now so hosts can subscribe; they fire once an engine is registered.
+// ---------------------------------------------------------------------------------------
+export type AdBreakPosition = 'preroll' | 'midroll' | 'postroll' | 'live';
+export interface AdBreakRequest {
+  breakId?: string;
+  position: AdBreakPosition;
+  adTagUrl?: string;
+  maxDurationMs?: number;
+}
+export interface AdInfo {
+  breakId: string;
+  position: AdBreakPosition;
+  provider: string;
+  adId?: string;
+  creativeId?: string;
+  podIndex?: number;
+  podSize?: number;
+  durationSec?: number;
+  skippable?: boolean;
+}
+export interface OverlayRef {
+  overlayId: string;
+  overlayType: string;
+}
+export interface PollResults {
+  pollId: string;
+  version: number;
+  totalVotes: number;
+  options: { optionId: string; votes: number; percent: number }[];
 }
 
 export type DeepPartial<T> = {
@@ -136,6 +255,9 @@ export type PlayerErrorCode =
   | 'STALLED'
   | 'PLAY_BLOCKED'
   | 'DESTROYED'
+  | 'FEATURE_UNAVAILABLE'
+  | 'PERMISSION_DENIED'
+  | 'INVALID_COMMAND'
   | 'UNKNOWN';
 
 export interface PlayerErrorInfo {
@@ -270,7 +392,43 @@ export interface PlayerEventMap {
   statechange: { state: PlayerState; changed: (keyof PlayerState)[] };
   configupdated: { config: PlayerConfig };
   destroyed: Record<string, never>;
+
+  // advertising (fired by an ad engine — Phase 3)
+  adbreakstart: { breakId: string; position: AdBreakPosition };
+  adbreakend: { breakId: string; position: AdBreakPosition; reason: 'completed' | 'skipped' | 'error' | 'cancelled' | 'timeout' | 'nofill' };
+  adrequest: { breakId: string; position: AdBreakPosition; provider: string };
+  adloaded: AdInfo;
+  adstarted: AdInfo;
+  adquartile: AdInfo & { quartile: 1 | 2 | 3 };
+  adcompleted: AdInfo;
+  adskipped: AdInfo;
+  aderror: { breakId?: string; provider: string; code: string; message: string };
+  // overlays (Phase 4)
+  overlayshown: OverlayRef;
+  overlayclosed: OverlayRef & { reason: 'user' | 'expired' | 'command' | 'replaced' };
+  overlayclicked: OverlayRef & { targetUrl?: string };
+  // polls & interactions (Phase 5)
+  polldisplayed: { pollId: string };
+  voteaccepted: { pollId: string; optionIds: string[] };
+  pollresultsupdated: PollResults;
+  // commands & announcements
+  commandreceived: { id: string; type: string; role: CommandRole };
+  commandapplied: CommandAck;
+  commandrejected: CommandAck;
+  announcement: { id: string; text: string; level: 'info' | 'warning'; durationMs: number };
+  // analytics
+  analyticsflush: { count: number; ok: boolean; status?: number };
+  // plugins
+  pluginregistered: { name: string; provides: string[] };
 }
+
+/** Events that plugins and controllers may emit (core playback events stay core-only). */
+export type ExtensionEventName =
+  | 'adbreakstart' | 'adbreakend' | 'adrequest' | 'adloaded' | 'adstarted' | 'adquartile' | 'adcompleted' | 'adskipped' | 'aderror'
+  | 'overlayshown' | 'overlayclosed' | 'overlayclicked'
+  | 'polldisplayed' | 'voteaccepted' | 'pollresultsupdated'
+  | 'commandreceived' | 'commandapplied' | 'commandrejected' | 'announcement'
+  | 'analyticsflush' | 'pluginregistered';
 
 export type PlayerEventName = keyof PlayerEventMap;
 export type Unsubscribe = () => void;

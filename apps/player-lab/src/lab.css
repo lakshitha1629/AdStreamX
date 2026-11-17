@@ -46,7 +46,7 @@ input[type=color].input{padding:2px;height:34px}
 .btn.ghost{background:transparent}
 .btn.sm{padding:5px 9px;font-size:12px}
 .fault-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.faults{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
+.faults,.acks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:3px}
 .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;margin:0;font-size:13px}
 .kv dt{color:var(--muted)}
 .kv dd{margin:0;min-width:0}
@@ -68,3 +68,5 @@ input[type=color].input{padding:2px;height:34px}
 .ev-ready .ev-name,.ev-playing .ev-name{color:var(--ok)}
 .ev-labcreate .ev-name,.ev-labload .ev-name,.ev-labfault .ev-name{color:var(--accent)}
 code{font-family:ui-monospace,monospace}
+.input.code{font-size:11px;white-space:pre;resize:vertical;line-height:1.4}
+a.btn{text-decoration:none;display:inline-block}

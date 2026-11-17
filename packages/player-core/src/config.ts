@@ -40,6 +40,17 @@ export const DEFAULT_CONFIG: PlayerConfig = {
     },
   },
   branding: { accentColor: '#22d3ee', logoUrl: undefined, logoAlt: undefined, title: undefined },
+  analytics: {
+    enabled: false,
+    endpoint: undefined,
+    requireConsent: true,
+    batchSize: 20,
+    flushIntervalMs: 10000,
+    maxQueue: 500,
+    sampleRate: 1,
+    heartbeatIntervalMs: 30000,
+  },
+  commands: { enabled: true, maxClockSkewMs: 300000, defaultTtlMs: 60000 },
   debug: false,
 };
 
@@ -107,6 +118,18 @@ export function resolveConfig(input: PlayerConfigInput = {}, base: PlayerConfig 
   if (typeof c.branding.accentColor !== 'string' || !/^#[0-9a-f]{3,8}$/i.test(c.branding.accentColor)) issues.push('branding.accentColor must be a hex colour');
   if (c.branding.logoUrl !== undefined && !/^https?:\/\/|^\//i.test(c.branding.logoUrl)) issues.push('branding.logoUrl must be http(s) or root-relative');
   if (!num(c.controls.autoHideMs, 0, 60000)) issues.push('controls.autoHideMs must be 0..60000');
+  const a = c.analytics;
+  if (typeof a.enabled !== 'boolean') issues.push('analytics.enabled must be boolean');
+  if (a.endpoint !== undefined && (typeof a.endpoint !== 'string' || !/^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\/|\/(?!\/))/i.test(a.endpoint)))
+    issues.push('analytics.endpoint must be https://, same-origin "/path", or http://localhost');
+  if (!num(a.batchSize, 1, 500) || !Number.isInteger(a.batchSize)) issues.push('analytics.batchSize must be an integer 1..500');
+  if (!num(a.flushIntervalMs, 1000, 600000)) issues.push('analytics.flushIntervalMs must be 1000..600000');
+  if (!num(a.maxQueue, 10, 10000) || !Number.isInteger(a.maxQueue)) issues.push('analytics.maxQueue must be an integer 10..10000');
+  if (!num(a.sampleRate, 0, 1)) issues.push('analytics.sampleRate must be 0..1');
+  if (!num(a.heartbeatIntervalMs, 5000, 600000)) issues.push('analytics.heartbeatIntervalMs must be 5000..600000');
+  if (typeof c.commands.enabled !== 'boolean') issues.push('commands.enabled must be boolean');
+  if (!num(c.commands.maxClockSkewMs, 0, 3600000)) issues.push('commands.maxClockSkewMs must be 0..3600000');
+  if (!num(c.commands.defaultTtlMs, 1000, 86400000)) issues.push('commands.defaultTtlMs must be 1000..86400000');
 
   if (issues.length) throw new ConfigError(issues);
   return c;

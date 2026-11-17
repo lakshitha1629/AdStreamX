@@ -1,0 +1,11 @@
+{
+  "name": "@adstreamx/command-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Remote player command schema, role permissions and Ed25519 signature verification (shared by SDK, embed and API).",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@adstreamx/shared-types": "workspace:*"
+  }
+}

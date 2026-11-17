@@ -24,7 +24,8 @@ export default defineConfig({
     command: 'node infrastructure/fixtures/server.mjs',
     url: `http://127.0.0.1:${port}/health`,
     reuseExistingServer: !process.env.CI,
-    env: { FIXTURE_QUIET: '1', FIXTURE_FAULTS: '1', FIXTURE_PORT: String(port) },
+    // two extra origins: a trusted iframe host page and an untrusted one
+    env: { FIXTURE_QUIET: '1', FIXTURE_FAULTS: '1', FIXTURE_PORT: String(port), FIXTURE_ALT_PORTS: `${port + 1},${port + 2}` },
   },
   projects: [
     { name: 'chrome', use: { ...devices['Desktop Chrome'], channel: 'chrome' } },

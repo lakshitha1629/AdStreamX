@@ -3,6 +3,8 @@
 //   packages/player-sdk/dist/adstreamx.js       IIFE  (window.AdStreamX)
 //   packages/player-sdk/dist/adstreamx.esm.js   ESM
 //   apps/player-lab/dist/                       Player Lab (React)
+//   apps/embed-player/dist/                     iframe player page
+//   tests/e2e/pages/build/                      e2e-only bundles (React wrapper test app)
 // Usage: node infrastructure/scripts/build.mjs [--watch]
 import fs from 'node:fs';
 import path from 'node:path';
@@ -21,8 +23,9 @@ const common = {
 
 const sdkDir = path.join(root, 'packages/player-sdk/dist');
 const labDir = path.join(root, 'apps/player-lab/dist');
-fs.mkdirSync(sdkDir, { recursive: true });
-fs.mkdirSync(labDir, { recursive: true });
+const embedDir = path.join(root, 'apps/embed-player/dist');
+const testDir = path.join(root, 'tests/e2e/pages/build');
+for (const d of [sdkDir, labDir, embedDir, testDir]) fs.mkdirSync(d, { recursive: true });
 
 const builds = [
   { ...common, entryPoints: [path.join(root, 'packages/player-sdk/src/global.ts')], outfile: path.join(sdkDir, 'adstreamx.js'), format: 'iife', minify: true },
@@ -36,11 +39,31 @@ const builds = [
     jsx: 'automatic',
     define: { 'process.env.NODE_ENV': watch ? '"development"' : '"production"' },
   },
+  {
+    ...common,
+    entryPoints: [path.join(root, 'apps/embed-player/src/main.ts')],
+    outfile: path.join(embedDir, 'embed.js'),
+    format: 'esm',
+    minify: true,
+  },
+  {
+    ...common,
+    entryPoints: [path.join(root, 'tests/e2e/react-app.tsx')],
+    outfile: path.join(testDir, 'react-app.js'),
+    format: 'esm',
+    jsx: 'automatic',
+    define: { 'process.env.NODE_ENV': '"development"' }, // dev build: StrictMode double-mount is exercised
+  },
 ];
 
-for (const f of ['index.html', 'lab.css']) {
-  const src = path.join(root, 'apps/player-lab/src', f);
-  if (fs.existsSync(src)) fs.copyFileSync(src, path.join(labDir, f));
+for (const [dir, out, files] of [
+  ['apps/player-lab/src', labDir, ['index.html', 'lab.css']],
+  ['apps/embed-player/src', embedDir, ['index.html']],
+]) {
+  for (const f of files) {
+    const src = path.join(root, dir, f);
+    if (fs.existsSync(src)) fs.copyFileSync(src, path.join(out, f));
+  }
 }
 
 if (watch) {

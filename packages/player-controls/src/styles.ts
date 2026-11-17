@@ -76,6 +76,9 @@ export const PLAYER_CSS = /* css */ `
 .asx-flash{position:absolute;top:50%;transform:translateY(-50%);padding:10px 14px;border-radius:24px;background:rgba(0,0,0,.6);font-weight:700;pointer-events:none;opacity:0;transition:opacity .2s}
 .asx-flash.asx-show{opacity:1}
 .asx-flash-left{left:12%}.asx-flash-right{right:12%}
+.asx-announce{position:absolute;top:52px;left:50%;transform:translateX(-50%);max-width:min(560px,90%);padding:8px 14px;border-radius:10px;
+  background:var(--asx-panel);border-left:4px solid var(--asx-accent);font-size:13px;line-height:1.4;pointer-events:none;z-index:4;overflow-wrap:anywhere}
+.asx-announce.asx-warning{border-left-color:#f59e0b}
 .asx-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 @media (max-width:560px){.asx-error{padding:10px 12px;font-size:12px}.asx-error-title{font-size:13px}.asx-error-retry{margin-top:8px;padding:6px 12px}
   .asx-volume{display:none}.asx-btn{width:36px;height:36px}.asx-bar{height:40px}.asx-hide-narrow{display:none!important}}

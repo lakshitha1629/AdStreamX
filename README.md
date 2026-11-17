@@ -2,13 +2,16 @@
 
 Modular video player and (planned) interactive advertising platform.
 
-> **Status — Phase 1 of 9 complete (core player + Player Lab).**
-> The SDK plays MP4, HLS VOD and HLS live with a custom accessible UI, recovers from network
-> faults and is covered by 42 unit and 34 browser tests (all passing in Chrome 153).
-> **Advertising, overlays, polls, backend, admin dashboard and analytics are not built yet.**
-> Nothing in this repo claims VAST/VMAP/SIMID/OMID support. See
-> [`docs/IMPLEMENTATION_CHECKLIST.md`](docs/IMPLEMENTATION_CHECKLIST.md) and
-> [`reports/PHASE-1-REPORT.md`](reports/PHASE-1-REPORT.md).
+> **Status — Phases 1–2 of 9 complete.**
+> Phase 1: the player plays MP4, HLS VOD and HLS live with an accessible custom UI and recovers
+> from network faults. Phase 2: typed SDK with seven controllers, plugin API, React wrapper,
+> cross-origin iframe player with a secured postMessage protocol, embed code generator, signed
+> operator commands and a consent-gated analytics client. 75 unit and 45 browser tests pass
+> (Chrome 153).
+> **Advertising, overlays, polls, the backend, admin dashboard and analytics reporting are not
+> built yet.** Nothing here claims VAST/VMAP/SIMID/OMID support. See
+> [`docs/IMPLEMENTATION_CHECKLIST.md`](docs/IMPLEMENTATION_CHECKLIST.md) and the
+> [phase reports](reports/).
 
 ## Try it (no install needed)
 
@@ -44,7 +47,29 @@ gitignored build outputs — regenerate with `npm run build` / `npm run fixtures
 </script>
 ```
 
-Full API, events and keyboard shortcuts: [`docs/player/API.md`](docs/player/API.md).
+Full API, controllers, plugins, events and keyboard shortcuts: [`docs/player/API.md`](docs/player/API.md).
+
+### As an iframe (cross-origin)
+
+```html
+<iframe id="player" src="https://player.example.com/embed/#cfg=…" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>
+<script src="https://player.example.com/sdk/adstreamx.js"></script>
+<script>
+  const embed = AdStreamX.connectIframe(document.getElementById('player'), { origin: 'https://player.example.com' });
+  embed.ready().then(() => embed.play());
+</script>
+```
+
+Generate the snippet with the Lab's **Embed code** panel or `AdStreamX.generateEmbedCode()`.
+Protocol and security rules: [`docs/player/EMBED_PROTOCOL.md`](docs/player/EMBED_PROTOCOL.md).
+Commands and permissions: [`docs/player/COMMANDS.md`](docs/player/COMMANDS.md).
+
+### In React
+
+```tsx
+import { AdStreamXPlayer } from '@adstreamx/react-player';
+<AdStreamXPlayer source={{ src: '/show/master.m3u8' }} config={{ branding: { title: 'Ep 1' } }} />
+```
 
 ## Develop
 
@@ -53,19 +78,24 @@ pnpm install          # once registry access is available (see docs/BLOCKERS.md)
 npm run link          # offline stand-in for workspace linking (TOOLCHAIN_DIR=… to link a local toolchain)
 npm run build         # esbuild → SDK (IIFE + ESM) and Player Lab
 npm run typecheck     # tsc, strict
-npm run test:unit     # node:test, 42 tests, runs on plain Node (no install)
-npm run test:e2e      # Playwright (Chrome channel), 34 tests, starts the fixture server itself
+npm run test:unit     # node:test, 75 tests, runs on plain Node (no install)
+npm run test:e2e      # Playwright (Chrome channel), 45 tests, starts the fixture server itself
 ```
 
 ## Repository
 
 ```
-apps/player-lab/          React Player Lab (diagnostics, presets, fault simulator)
-packages/shared-types/    public types (config, state, events, errors)
+apps/player-lab/          React Player Lab (diagnostics, presets, fault simulator, embed/analytics/command tools)
+apps/embed-player/        iframe player page (/embed/)
+packages/shared-types/    public types (config, state, events, errors, commands)
 packages/player-core/     engine-agnostic lifecycle, recovery, live logic, config, probe
 packages/playback-adapters/  engines (native HTML5 today; hls.js / Video.js 8 planned)
 packages/player-controls/ accessible custom UI, keyboard + touch
-packages/player-sdk/      AdStreamX.create() facade, IIFE/ESM bundles
+packages/player-sdk/      AdStreamX.create(), controllers, plugins, IIFE/ESM bundles
+packages/react-player/    React component wrapper
+packages/embed-protocol/  postMessage protocol v1 (iframe server, host client), embed code generator
+packages/command-protocol/ command schema, role permissions, Ed25519 verification
+packages/analytics-sdk/   consent-gated analytics collector
 infrastructure/fixtures/  zero-dependency media test server (live simulation, faults, signing)
 infrastructure/scripts/   FFmpeg fixture generation, build, workspace linking
 tests/unit, tests/e2e     node:test and Playwright suites
@@ -74,4 +104,5 @@ reports/                  phase reports with actual test results
 ```
 
 Packages listed in the original plan (ad-engine, ima-adapter, overlay-engine, api, admin-dashboard, …)
-are created when their phase starts — no empty placeholders.
+are created when their phase starts — no empty placeholders. `types/react-shim.d.ts` is a temporary
+stand-in for `@types/react` (docs/BLOCKERS.md B6).

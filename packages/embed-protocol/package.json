@@ -1,0 +1,12 @@
+{
+  "name": "@adstreamx/embed-protocol",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Versioned postMessage protocol for the AdStreamX iframe player: embed-side server, host-side client, embed code generator.",
+  "exports": { ".": "./src/index.ts" },
+  "dependencies": {
+    "@adstreamx/player-core": "workspace:*",
+    "@adstreamx/shared-types": "workspace:*"
+  }
+}

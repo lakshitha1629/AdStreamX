@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client';
 import type { MediaSourceConfig, PlayerEventName, PlayerState, StreamType } from '@adstreamx/shared-types';
 import { AdStreamX, type AdStreamXPlayer } from '@adstreamx/player-sdk';
 import { SHORTCUTS } from '@adstreamx/player-controls';
+import { COMMAND_TYPES } from '@adstreamx/command-protocol';
+import { ToolPanels } from './panels.tsx';
+import { Card } from './card.tsx';
 import { FAULTS, PRESETS, type Preset } from './presets.ts';
 
 const LOGGED_EVENTS: PlayerEventName[] = [
@@ -379,6 +382,8 @@ function App() {
             <button type="button" className="btn" onClick={applyConfig}>Apply</button>
           </Card>
 
+          <ToolPanels playerRef={playerRef} url={url} commandTypes={COMMAND_TYPES} />
+
           <Card title="VAST / VMAP tag tester" badge="Phase 3 · not built">
             <p className="muted small">The advertising engine (IMA, house ads, VMAP scheduling) has not been implemented yet. This panel will drive it once Phase 3 passes its gate.</p>
           </Card>
@@ -388,19 +393,6 @@ function App() {
         </aside>
       </main>
     </div>
-  );
-}
-
-function Card(props: { title: string; children?: unknown; actions?: unknown; badge?: string }) {
-  return (
-    <section className="card" aria-label={props.title}>
-      <header className="card-h">
-        <h2>{props.title}</h2>
-        {props.badge && <span className="badge warn">{props.badge}</span>}
-        {props.actions ? <div className="card-actions">{props.actions}</div> : null}
-      </header>
-      <div className="card-b">{props.children}</div>
-    </section>
   );
 }
 
