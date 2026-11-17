@@ -1,0 +1,29 @@
+{
+  "name": "adstreamx",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "AdStreamX — modular video player and interactive advertising platform (monorepo).",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.18.0"
+  },
+  "scripts": {
+    "link": "node infrastructure/scripts/link-workspace.mjs",
+    "fixtures": "bash infrastructure/scripts/generate-fixtures.sh",
+    "build": "node infrastructure/scripts/build.mjs",
+    "serve": "node infrastructure/fixtures/server.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "node --test \"tests/unit/**/*.test.ts\"",
+    "test:e2e": "playwright test",
+    "test": "npm run test:unit && npm run test:e2e"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.3",
+    "esbuild": "0.28.2",
+    "playwright": "1.63.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "typescript": "6.0.3"
+  }
+}

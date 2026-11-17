@@ -1,0 +1,14 @@
+node_modules/
+dist/
+coverage/
+test-results/
+playwright-report/
+docs/
+reports/e2e-results.json
+infrastructure/fixtures/media/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+.github

@@ -1,0 +1,14 @@
+WEBVTT
+X-TIMESTAMP-MAP=MPEGTS:126000,LOCAL:00:00:00.000
+
+1
+00:00:01.000 --> 00:00:05.000
+HLS VOD subtitle rendition — English
+
+2
+00:00:06.000 --> 00:00:12.000
+Three video renditions: 240p, 360p and 720p.
+
+3
+00:00:13.000 --> 00:00:19.000
+End of the HLS VOD fixture.

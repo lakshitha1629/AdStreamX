@@ -1,0 +1,13 @@
+{
+  "name": "@adstreamx/player-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@adstreamx/player-controls": "workspace:*",
+    "@adstreamx/player-sdk": "workspace:*",
+    "@adstreamx/shared-types": "workspace:*",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  }
+}

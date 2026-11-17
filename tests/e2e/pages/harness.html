@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AdStreamX e2e harness</title>
+  <link rel="icon" href="data:," />
+  <style>
+    body { margin: 0; padding: 16px; background: #111; color: #ddd; font: 14px system-ui; }
+    .slot { width: 640px; max-width: 100%; margin-bottom: 16px; }
+  </style>
+</head>
+<body>
+  <!-- Test page only. Tests create players with window.AdStreamX and record events into window.__events. -->
+  <div id="slot-a" class="slot"></div>
+  <div id="slot-b" class="slot"></div>
+  <script src="/sdk/adstreamx.js"></script>
+  <script>
+    window.__events = [];
+    window.__players = {};
+    window.mk = function (slot, config, name) {
+      const p = AdStreamX.create(document.getElementById(slot), config);
+      name = name || slot;
+      window.__players[name] = p;
+      const types = ['ready','loadstart','loadedmetadata','play','playing','pause','ended','seeking','seeked','bufferingstart','bufferingend',
+        'qualitychange','texttrackchange','audiotrackchange','liveedgereached','retry','fallback','sourcechange','error','autoplayblocked',
+        'fullscreenchange','theaterchange','configupdated','destroyed'];
+      for (const t of types) p.on(t, (e) => window.__events.push({ p: name, t, e: JSON.parse(JSON.stringify(e ?? {})), at: performance.now() }));
+      return p;
+    };
+    window.ev = (name, type) => window.__events.filter((x) => (!name || x.p === name) && (!type || x.t === type));
+  </script>
+</body>
+</html>
